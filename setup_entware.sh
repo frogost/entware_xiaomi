@@ -31,32 +31,43 @@ install_entware() {
         exit 1
     fi
     log "Используем накопитель: $USB_PATH" "info"
-
-    log "Создание папок на USB..." "info"
-    mkdir -p "$ENT_DIR/tmp" || { log "Диск защищен от записи!" "err" ; exit 1; }
-
-    log "Скачивание установщика..." "info"
-    curl -L -s http://bin.entware.net/aarch64-k3.10/installer/generic.sh -o "$ENT_DIR/tmp/generic.sh"
+	
+	mkdir -p "$ENT_DIR" || { log "Диск защищен от записи!" "err" ; exit 1; }
+	
+    log "Подготовка точки монтирования /opt..." "info"
+    [ -d /opt ] || mkdir -p /opt
     
-    if [ ! -f "$ENT_DIR/tmp/generic.sh" ]; then
+    if mount | grep -q ' /opt '; then
+        log "/opt уже смонтирован. Если это старая установка, удалите её командой uninstall." "err"
+        exit 1
+    fi
+	
+    mount --bind "$ENT_DIR" /opt
+    if ! mount | grep -q ' /opt '; then
+        log "Критическая ошибка: не удалось смонтировать /opt!" "err"
+        exit 1
+    fi
+	
+	log "Создание временной папки" "info"
+    mkdir -p /opt/tmp
+	
+    log "Скачивание установщика..." "info"
+    curl -L -k -s http://bin.entware.net/aarch64-k3.10/installer/generic.sh -o /opt/tmp/generic.sh
+    
+    if [ ! -f /opt/tmp/generic.sh ]; then
         log "Не удалось скачать файл. Проверьте интернет." "err"
         exit 1
     fi
 	
-	log "Создание симлинка в папку /opt" "info"
-	if [ -d "$ENT_DIR" ]; then
-        [ -d /opt ] || mkdir -p /opt
-        mount | grep -q ' /opt ' || mount --bind "$ENT_DIR" /opt
-
-    log "Запуск скрипта установки ядра Entware..." "info"
-    chmod +x "$ENT_DIR/tmp/generic.sh"
-    sh "$ENT_DIR/tmp/generic.sh" >> "$LOG_FILE" 2>&1
-
-    log "Настройка переменных окружения и обновление opkg..." "info"
+    log "Запуск скрипта установки generic.sh (подождите)..." "info"
+    chmod +x /opt/tmp/generic.sh
+    sh /opt/tmp/generic.sh >> "$LOG_FILE" 2>&1
+	
+	log "Настройка переменных окружения и обновление opkg..." "info"
     export PATH="/opt/bin:/opt/sbin:$PATH"
     /opt/bin/opkg update >> "$LOG_FILE" 2>&1
 
-    log "Регистрация автозапуска..." "info"
+    log "Регистрация автозапуска в /data/ и Firewall..." "info"
     cp "$0" "$STARTUP_FILE" && chmod +x "$STARTUP_FILE"
     
     uci -q delete firewall.entware
@@ -65,15 +76,15 @@ install_entware() {
     uci set firewall.entware.path="$STARTUP_FILE"
     uci set firewall.entware.enabled='1'
     uci commit firewall
-
-    if ! grep -q '/opt/bin' /etc/profile; then
-        log "Добавление путей в /etc/profile..." "info"
-        cat >> /etc/profile <<-'EOF'
+	
+    #if ! grep -q '/opt/bin' /etc/profile; then
+        #log "Добавление путей в /etc/profile..." "info"
+        #cat >> /etc/profile <<-'EOF'
 			# Entware (USB /opt)
-			export PATH="/opt/bin:/opt/sbin:$PATH"
-			export LD_LIBRARY_PATH="/opt/lib:$LD_LIBRARY_PATH"
-		EOF
-    fi
+			#export PATH="/opt/bin:/opt/sbin:$PATH"
+			#export LD_LIBRARY_PATH="/opt/lib:$LD_LIBRARY_PATH"
+		#EOF
+    #fi
 
     log "Entware полностью установлена!" "ok"
     echo "================================"
