@@ -42,6 +42,11 @@ install_entware() {
         log "Не удалось скачать файл. Проверьте интернет." "err"
         exit 1
     fi
+	
+	log "Создание симлинка в папку /opt" "info"
+	if [ -d "$ENT_DIR" ]; then
+        [ -d /opt ] || mkdir -p /opt
+        mount | grep -q ' /opt ' || mount --bind "$ENT_DIR" /opt
 
     log "Запуск скрипта установки ядра Entware..." "info"
     chmod +x "$ENT_DIR/tmp/generic.sh"
