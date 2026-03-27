@@ -7,17 +7,14 @@ LOG_FILE="/tmp/entware_install.log"
 FINAL_LOG="$ENT_DIR/entware.log"
 STARTUP_FILE="/data/startup_entware.sh"
 
-# Улучшенная функция логирования: $1 - сообщение, $2 - тип (info/err/ok)
 log() {
     local msg="$1"
     local type="$2"
     local timestamp=$(date '+%F %T')
     
-    # Запись в файл (всегда)
     echo "[$timestamp] $msg" >> "$LOG_FILE"
     [ -d "$ENT_DIR" ] && echo "[$timestamp] $msg" >> "$FINAL_LOG"
 
-    # Вывод в консоль (красиво)
     case "$type" in
         "info") echo " -> $msg" ;;
         "err")  echo "[!] ОШИБКА: $msg" ;;
@@ -27,7 +24,7 @@ log() {
 }
 
 install_entware() {
-    echo "=== Запуск установки Entware ==="
+    echo "=== Запуск установки Entware (CURL mode) ==="
     
     if [ -z "$USB_PATH" ]; then
         log "USB накопитель не найден в /mnt/" "err"
@@ -38,11 +35,12 @@ install_entware() {
     log "Создание папок на USB..." "info"
     mkdir -p "$ENT_DIR/tmp" || { log "Диск защищен от записи!" "err" ; exit 1; }
 
-    log "Скачивание установщика (может занять время)..." "info"
-    wget http://bin.entware.net/aarch64-k3.10/installer/generic.sh -O "$ENT_DIR/tmp/generic.sh" 2>>"$LOG_FILE"
+    log "Скачивание установщика через curl..." "info"
+    # Заменяем wget на curl. -L для редиректов, -s для тишины, -o для вывода в файл
+    curl -L -s http://bin.entware.net/aarch64-k3.10/installer/generic.sh -o "$ENT_DIR/tmp/generic.sh"
     
     if [ ! -f "$ENT_DIR/tmp/generic.sh" ]; then
-        log "Не удалось скачать файл. Проверьте интернет." "err"
+        log "Не удалось скачать файл через curl. Проверьте интернет." "err"
         exit 1
     fi
 
@@ -79,27 +77,17 @@ install_entware() {
 
 uninstall_entware() {
     echo "=== Запуск удаления Entware ==="
-    
-    log "Остановка активных сервисов..." "info"
     [ -x /opt/etc/init.d/rc.unslung ] && /opt/etc/init.d/rc.unslung stop >> "$LOG_FILE" 2>&1
-
-    log "Размонтирование /opt..." "info"
     umount -l /opt 2>/dev/null
-
-    log "Очистка системных записей автозапуска..." "info"
     uci -q delete firewall.entware
     uci commit firewall
     rm -f "$STARTUP_FILE"
-
-    log "Удаление файлов с USB накопителя..." "info"
     rm -rf "$ENT_DIR"
-
     log "Entware полностью удалена." "ok"
     echo "================================"
 }
 
 run_services() {
-    # Здесь логи в консоль не выводим (фоновый процесс), только в файл
     for i in $(seq 1 10); do
         [ -d "$ENT_DIR" ] && break
         sleep 2
@@ -110,10 +98,8 @@ run_services() {
         mount | grep -q ' /opt ' || mount --bind "$ENT_DIR" /opt
         
         if mount | grep -q ' /opt '; then
-            echo "[$(date '+%F %T')] [AUTOSTART] /opt mounted" >> "$FINAL_LOG"
             export PATH=/opt/bin:/opt/sbin:$PATH
             export LD_LIBRARY_PATH=/opt/lib
-            
             if [ -x /opt/etc/init.d/rc.unslung ]; then
                 /opt/etc/init.d/rc.unslung start >> "$FINAL_LOG" 2>&1
             fi
