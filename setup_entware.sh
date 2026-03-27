@@ -78,13 +78,8 @@ install_entware() {
                 echo 'export LD_LIBRARY_PATH="/opt/lib:$LD_LIBRARY_PATH"' >> /etc/profile
             fi
     fi
-    export PATH="/opt/bin:/opt/sbin:$PATH"
-    export LD_LIBRARY_PATH="/opt/lib"
-	
-	log "Обновление opkg..." "info"
-    /opt/bin/opkg update >> "$LOG_FILE" 2>&1
 
-    log "Регистрация автозапуска в /data/ и Firewall..." "info"
+    log "Регистрация автозапуска в /data/ и Firewall" "info"
     cp "$0" "$STARTUP_FILE" && chmod +x "$STARTUP_FILE"
     
     uci -q delete firewall.entware
@@ -93,6 +88,9 @@ install_entware() {
     uci set firewall.entware.path="$STARTUP_FILE"
     uci set firewall.entware.enabled='1'
     uci commit firewall
+
+	log "Запуск..." "info"
+	sh $STARTUP_FILE
 
     log "Entware полностью установлена!" "ok"
     echo "================================"
