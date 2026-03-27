@@ -63,8 +63,25 @@ install_entware() {
     chmod +x /opt/tmp/generic.sh
     sh /opt/tmp/generic.sh >> "$LOG_FILE" 2>&1
 	
-	log "Настройка переменных окружения и обновление opkg..." "info"
+	log "Настройка переменных окружения" "info"
+    if ! grep -q "/opt/bin" /etc/profile; then
+            LOCAL_CURRENT_PATH=$(grep "^export PATH=" /etc/profile | cut -d'"' -f2)
+            
+            if [ -z "$LOCAL_CURRENT_PATH" ]; then
+                echo 'export PATH="/opt/bin:/opt/sbin:$PATH"' >> /etc/profile
+            else
+                NEW_PATH="/opt/bin:/opt/sbin:$LOCAL_CURRENT_PATH"
+                sed -i "s|^export PATH=.*|export PATH=\"$NEW_PATH\"|" /etc/profile
+            fi
+
+            if ! grep -q "LD_LIBRARY_PATH" /etc/profile; then
+                echo 'export LD_LIBRARY_PATH="/opt/lib:$LD_LIBRARY_PATH"' >> /etc/profile
+            fi
+    fi
     export PATH="/opt/bin:/opt/sbin:$PATH"
+    export LD_LIBRARY_PATH="/opt/lib"
+	
+	log "Обновление opkg..." "info"
     /opt/bin/opkg update >> "$LOG_FILE" 2>&1
 
     log "Регистрация автозапуска в /data/ и Firewall..." "info"
@@ -76,15 +93,6 @@ install_entware() {
     uci set firewall.entware.path="$STARTUP_FILE"
     uci set firewall.entware.enabled='1'
     uci commit firewall
-
-	log "Добавление путей в /etc/profile..." "info"
-    if mount | grep -q ' /opt '; then
-            export PATH=/opt/bin:/opt/sbin:$PATH
-            export LD_LIBRARY_PATH=/opt/lib
-            if [ -x /opt/etc/init.d/rc.unslung ]; then
-                /opt/etc/init.d/rc.unslung start >> "$LOG_FILE" 2>&1
-            fi
-    fi
 
     log "Entware полностью установлена!" "ok"
     echo "================================"
@@ -111,11 +119,28 @@ run_services() {
     if [ -d "$ENT_DIR" ]; then
         [ -d /opt ] || mkdir -p /opt
         mount | grep -q ' /opt ' || mount --bind "$ENT_DIR" /opt
-        
+
+        if ! grep -q "/opt/bin" /etc/profile; then
+            LOCAL_CURRENT_PATH=$(grep "^export PATH=" /etc/profile | cut -d'"' -f2)
+            
+            if [ -z "$LOCAL_CURRENT_PATH" ]; then
+                echo 'export PATH="/opt/bin:/opt/sbin:$PATH"' >> /etc/profile
+            else
+                NEW_PATH="/opt/bin:/opt/sbin:$LOCAL_CURRENT_PATH"
+                sed -i "s|^export PATH=.*|export PATH=\"$NEW_PATH\"|" /etc/profile
+            fi
+
+            if ! grep -q "LD_LIBRARY_PATH" /etc/profile; then
+                echo 'export LD_LIBRARY_PATH="/opt/lib:$LD_LIBRARY_PATH"' >> /etc/profile
+            fi
+        fi
+
         if mount | grep -q ' /opt '; then
-            export PATH=/opt/bin:/opt/sbin:$PATH
-            export LD_LIBRARY_PATH=/opt/lib
+            export PATH="/opt/bin:/opt/sbin:$PATH"
+            export LD_LIBRARY_PATH="/opt/lib"
+            
             if [ -x /opt/etc/init.d/rc.unslung ]; then
+                echo "[$(date '+%F %T')] [AUTOSTART] Starting services..." >> "$FINAL_LOG"
                 /opt/etc/init.d/rc.unslung start >> "$FINAL_LOG" 2>&1
             fi
         fi
