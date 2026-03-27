@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# 1. Поиск пути к USB
+# Поиск пути к USB
 USB_PATH=$(ls -d /mnt/usb-* 2>/dev/null | head -n 1)
 ENT_DIR="$USB_PATH/opt"
 LOG_FILE="/tmp/entware_install.log"
@@ -24,7 +24,7 @@ log() {
 }
 
 install_entware() {
-    echo "=== Запуск установки Entware (CURL mode) ==="
+    echo "=== Запуск установки Entware ==="
     
     if [ -z "$USB_PATH" ]; then
         log "USB накопитель не найден в /mnt/" "err"
@@ -35,16 +35,15 @@ install_entware() {
     log "Создание папок на USB..." "info"
     mkdir -p "$ENT_DIR/tmp" || { log "Диск защищен от записи!" "err" ; exit 1; }
 
-    log "Скачивание установщика через curl..." "info"
-    # Заменяем wget на curl. -L для редиректов, -s для тишины, -o для вывода в файл
+    log "Скачивание установщика..." "info"
     curl -L -s http://bin.entware.net/aarch64-k3.10/installer/generic.sh -o "$ENT_DIR/tmp/generic.sh"
     
     if [ ! -f "$ENT_DIR/tmp/generic.sh" ]; then
-        log "Не удалось скачать файл через curl. Проверьте интернет." "err"
+        log "Не удалось скачать файл. Проверьте интернет." "err"
         exit 1
     fi
 
-    log "Запуск скрипта установки generic.sh..." "info"
+    log "Запуск скрипта установки ядра Entware..." "info"
     chmod +x "$ENT_DIR/tmp/generic.sh"
     sh "$ENT_DIR/tmp/generic.sh" >> "$LOG_FILE" 2>&1
 
@@ -52,7 +51,7 @@ install_entware() {
     export PATH="/opt/bin:/opt/sbin:$PATH"
     /opt/bin/opkg update >> "$LOG_FILE" 2>&1
 
-    log "Регистрация автозапуска в /data/ и UCI..." "info"
+    log "Регистрация автозапуска..." "info"
     cp "$0" "$STARTUP_FILE" && chmod +x "$STARTUP_FILE"
     
     uci -q delete firewall.entware
