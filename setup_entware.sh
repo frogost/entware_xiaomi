@@ -76,15 +76,15 @@ install_entware() {
     uci set firewall.entware.path="$STARTUP_FILE"
     uci set firewall.entware.enabled='1'
     uci commit firewall
-	
-    #if ! grep -q '/opt/bin' /etc/profile; then
-        #log "Добавление путей в /etc/profile..." "info"
-        #cat >> /etc/profile <<-'EOF'
-			# Entware (USB /opt)
-			#export PATH="/opt/bin:/opt/sbin:$PATH"
-			#export LD_LIBRARY_PATH="/opt/lib:$LD_LIBRARY_PATH"
-		#EOF
-    #fi
+
+	log "Добавление путей в /etc/profile..." "info"
+    if mount | grep -q ' /opt '; then
+            export PATH=/opt/bin:/opt/sbin:$PATH
+            export LD_LIBRARY_PATH=/opt/lib
+            if [ -x /opt/etc/init.d/rc.unslung ]; then
+                /opt/etc/init.d/rc.unslung start >> "$LOG_FILE" 2>&1
+            fi
+    fi
 
     log "Entware полностью установлена!" "ok"
     echo "================================"
