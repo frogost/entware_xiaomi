@@ -15,11 +15,19 @@
 Для запуска процесса установки выполните команду в консоли роутера:
 
 ```bash
-curl -L -k -s https://raw.githubusercontent.com/frogost/entware_xiaomi/main/setup_entware.sh -o /tmp/setup_entware.sh && chmod +x /tmp/setup_entware.sh && /tmp/setup_entware.sh install
+curl -L -k -s https://raw.githubusercontent.com/frogost/entware_xiaomi/main/setup_entware.sh -o /tmp/setup_entware.sh && chmod +x /tmp/setup_entware.sh && /tmp/setup_entware.sh
 ```
-## ⚠️ Стоит обратить внимание
-· Логи установки запишутся в файл: /tmp/entware_install.log (и удалятся после перезагрузки роутера)
-· Логи автозапуска будут записываться в файл: /mnt/usb-xxxxxx/opt/entware.log
-· Системная папка Entware после установки: /mnt/usb-xxxxxx/opt или просто /opt
-· Проверка установки Entware команда: /data/startup_entware.sh status
-· Удаление Entware команда: /data/startup_entware.sh uninstall
+## 📋 Управление и логи
+После установки вам будут доступны следующие возможности:
+
+* **Статус работы:** `/data/startup_entware.sh status`
+* **Удаление:** `/data/startup_entware.sh uninstall`
+* **Лог установки:** `/tmp/entware_install.log` (доступен до перезагрузки)
+* **Лог автозапуска:** Внутри папки `opt` (например, `/mnt/usb-XXXX/opt/entware.log`)
+
+---
+
+## ⚠️ Важные примечания
+* **Системная папка:** Entware монтируется в `/opt`.
+* **Менеджер пакетов:** Все программы ставятся через `opkg` (например: `opkg update && opkg install nano`).
+* **Автозапуск:** Скрипт автоматически настраивает запуск всех сервисов при загрузке системы.
