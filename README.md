@@ -15,7 +15,7 @@
 Для запуска процесса установки выполните команду в консоли роутера:
 
 ```bash
-curl -L -k -s https://raw.githubusercontent.com/frogost/entware_xiaomi/main/setup_entware.sh -o /tmp/setup_entware.sh && chmod +x /tmp/setup_entware.sh && /tmp/setup_entware.sh
+curl -L -k -s https://raw.githubusercontent.com/frogost/entware_xiaomi/main/setup_entware.sh -o /tmp/setup_entware.sh && chmod +x /tmp/setup_entware.sh && /tmp/setup_entware.sh install
 ```
 ## 📋 Управление и логи
 После установки вам будут доступны следующие возможности:
