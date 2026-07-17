@@ -90,7 +90,7 @@ install_entware() {
     uci commit firewall
 
 	log "Запуск..." "info"
-	sh $STARTUP_FILE
+	sh "$STARTUP_FILE"
 
     log "Entware полностью установлена!" "ok"
     echo "================================"
@@ -103,7 +103,12 @@ uninstall_entware() {
     uci -q delete firewall.entware
     uci commit firewall
     rm -f "$STARTUP_FILE"
-    rm -rf "$ENT_DIR"
+    if get_paths && [ -n "$ENT_DIR" ] && [ -d "$ENT_DIR" ]; then
+        rm -rf "$ENT_DIR"
+        log "Данные на флешке ($ENT_DIR) удалены." "ok"
+    else
+        log "Флешка не найдена, файлы на ней не удалены." "info"
+    fi
     log "Entware полностью удалена." "ok"
     echo "================================"
 }
@@ -154,7 +159,11 @@ case "$1" in
         ;;
     status)
         echo "--- Статус ---"
-        mount | grep /opt || echo "/opt не смонтирован"
+        if mount | grep -q ' /opt '; then
+            echo "Монтирование: OK (/opt смонтирован)"
+        else
+            echo "Монтирование: /opt не смонтирован"
+        fi
         [ -d /opt/bin ] && echo "Бинарники: OK" || echo "Бинарники: отсутствуют"
         ;;
     *)
